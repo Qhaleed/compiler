@@ -165,6 +165,11 @@
 #include <cctype>
 #include <sstream>
 
+// Import for h files
+#include "components/ascii.h"
+
+
+
 using namespace std;
 
 /**
@@ -1867,10 +1872,7 @@ void saveToFile(const string& code, const string& filename) {
 }
 
 /**
- * Main compilation function that orchestrates the entire compilation process
- * 
- * Architecture Overview: This function implements a traditional three-phase
- * compiler pipeline with proper error propagation and resource management:
+
  * 
  * Phase 1: Lexical Analysis - Tokenization of source code
  * Phase 2: Syntax Analysis - AST construction with semantic checking
@@ -1880,13 +1882,6 @@ void saveToFile(const string& code, const string& filename) {
  * phase can throw runtime_error exceptions with descriptive messages. This
  * provides clear error propagation up to the REPL interface for user feedback.
  * 
- * Memory Management: The Parser takes ownership of tokens and the CodeGenerator
- * takes ownership of the AST, ensuring proper cleanup through RAII principles.
- * 
- * @param source Res source code to compile
- * @param symbols Symbol table for variable tracking across compilation sessions
- * @return Generated C++ code as a string
- * @throws runtime_error if compilation fails at any stage (lexical, syntax, or generation errors)
  */
 string compile(const string& source, SymbolTable& symbols) {
     // Phase 1: Lexical Analysis - Transform source text into token stream
@@ -1905,73 +1900,12 @@ string compile(const string& source, SymbolTable& symbols) {
     return generator.generate();
 }
 
-/**
- * Displays the Res compiler logo and welcome message
- * Creates an attractive ASCII art interface for the user
- * 
- * User Experience Design: This function establishes the visual identity of the
- * Res compiler and provides essential usage instructions. The ASCII art creates
- * a professional appearance while the colored text guides users through the
- * interface.
- * 
- * Design Decisions:
- * - Uses raw string literals for clean ASCII art formatting
- * - Employs ANSI color codes for visual hierarchy and appeal
- * - Provides clear instructions for compilation trigger (\g) and exit method
- * - Informs users about file output location to set expectations
- * 
- * Terminal Compatibility: The ANSI color codes work across modern terminals
- * on Linux, macOS, and Windows 10+, degrading gracefully on older systems.
- */
-void printResLogo() {
-    cout << CYAN << BOLD;
-    cout << R"(
-  _____                _____                         _ _           
- |  __ \              / ____|                      (_) |          
- | |__) |___  ___    | |     ___  _ __ ___  _ __ _  _| | ___ _ __ 
- |  _  // _ \/ __|   | |    / _ \| '_ ` _ \| '__  || | |/ _ \ '__|
- | | \ \  __/\__ \   | |___| (_) | | | | | |_ | || | |  \ __/ |   
- |_|  \_\___||___/    \_____\___/|_| |_| |_|_ _ __||_|_| \__| |   
-                                           | |  
-                                           |_|
-)" << RESET << endl;
-    
-    cout << YELLOW << "╔═══════════════════════════════════════════════════════════════════════════════════" << RESET << endl;
-    cout << YELLOW << "║ " << GREEN << "Welcome to the Res Programming Language! " << RESET << endl;
-    cout << YELLOW << "║ " << BLUE << "After writing code, type " << BOLD << "\\g" << RESET << BLUE << " to compile, " << BOLD << "Ctrl+C" << RESET << endl;
-    cout << YELLOW << "║ " << CYAN << "All files will be saved to the 'saves' directory" << RESET << endl;
-    cout << YELLOW << "║ " << CYAN << "Don't know what to write? Check out samples.md" << RESET << endl;
-    cout << YELLOW << "║ " << RED << "Notes: You can either paste the code directly, or write it line by line" << RESET << endl;
-    cout << YELLOW << "╚═══════════════════════════════════════════════════════════════════════════════════" << RESET << endl;
-}
-/**
- * Main function - Entry point for the Res compiler
- * Implements an interactive REPL (Read-Eval-Print Loop) interface
- * 
- * REPL Architecture: This implementation provides a persistent compilation
- * environment where users can incrementally build programs by entering code
- * line by line, then compile the accumulated input with the \g command.
- * 
- * State Management Strategy:
- * - input: Accumulates all user-entered source code across multiple lines
- * - symbols: Persistent symbol table maintains variable declarations between sessions
- * - lineCount: Tracks input for potential future enhancements (currently unused)
- * 
- * Error Handling Philosophy: The REPL uses defensive programming with graceful
- * error recovery. Compilation errors are caught and displayed with clear
- * messaging, allowing users to fix issues and retry without losing their work.
- * 
- * User Interface Design: Colored output provides visual feedback for different
- * types of information (errors, success, prompts) while maintaining readability.
- * 
- * Memory Management: The main loop properly cleans up resources between
- * compilation cycles and relies on RAII principles in the compilation pipeline.
- * 
- * @return Standard exit code (0 for normal termination)
- */
+// main 
+
 int main() {
     // Initialize user interface with welcome screen and instructions
-    printResLogo();
+    printAscii();
+
     
     // Initialize compiler state for persistent REPL session
     string input;           // Accumulated source code across multiple input lines
