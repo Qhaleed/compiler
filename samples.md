@@ -1,6 +1,6 @@
 # Res Programming Language - Code Samples
 
-This file contains various code snippets demonstrating the features of the Res programming language. Each sample can be copy-pasted into the Res compiler for testing.
+This file contains various code snippets demonstrating the features of the Res programming language. Each sample can be copy-pasted into the Res compiler for testing. When copy pasting make sure to know paste it as one line. The user interface is based on the mysql cli, hence each line of code should be inputted one at a time.
 
 ## Sample 1: Basic Variables and Arithmetic
 
@@ -45,23 +45,6 @@ coms("Pi value:", pi);
 coms("Radius:", radius);
 coms("Area:", area);
 coms("Circumference:", circumference);
-```
-
-## Sample 4: Complex Expressions
-
-```res
-// Complex mathematical expressions
-typeshi int a = 5;
-typeshi int b = 3;
-typeshi int c = 2;
-
-typeshi int result1 = (a + b) * c;
-typeshi int result2 = a * (b + c);
-typeshi int result3 = (a - b) + (c * 2);
-
-coms("(5 + 3) * 2 =", result1);
-coms("5 * (3 + 2) =", result2);
-coms("(5 - 3) + (2 * 2) =", result3);
 ```
 
 ## Sample 5: Simple Function Definitions
