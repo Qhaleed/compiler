@@ -4,7 +4,6 @@ using namespace std;
 
 
 int main() {
-    int x = 42;
-    cout << x << endl;
+    cout << "res" << endl;
     return 0;
 }

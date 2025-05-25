@@ -658,57 +658,78 @@ private:
 
 
     Expr* parseExpression() {
-        struct ExprStackNode {
-            Expr* expr;
-            ExprStackNode* next;
-            ExprStackNode(Expr* e) : expr(e), next(nullptr) {}
-        };
-        struct OpStackNode {
-            TokenType op;
-            OpStackNode* next;
-            OpStackNode(TokenType o) : op(o), next(nullptr) {}
-        };
-        ExprStackNode* exprStack = nullptr;
-        OpStackNode* opStack = nullptr;
-        auto pushExpr = [&](Expr* e) {
-            ExprStackNode* node = new ExprStackNode(e);
-            node->next = exprStack;
-            exprStack = node;
-        };
-        auto popExpr = [&]() -> Expr* {
-            if (!exprStack) throw runtime_error("Expression stack underflow");
-            ExprStackNode* temp = exprStack;
-            exprStack = exprStack->next;
-            Expr* e = temp->expr;
-            delete temp;
-            return e;
-        };
-        auto pushOp = [&](TokenType o) {
-            OpStackNode* node = new OpStackNode(o);
-            node->next = opStack;
-            opStack = node;
-        };
-        auto popOp = [&]() -> TokenType {
-            if (!opStack) throw runtime_error("Operator stack underflow");
-            OpStackNode* temp = opStack;
-            opStack = opStack->next;
-            TokenType o = temp->op;
-            delete temp;
-            return o;
-        };
-        auto clearStacks = [&]() {
-            while (exprStack) {
-                ExprStackNode* temp = exprStack;
-                exprStack = exprStack->next;
-                delete temp->expr;
-                delete temp;
+        // Use proper Stack data structures
+        class ExprStack {
+            struct Node {
+                Expr* data;
+                Node* next;
+                Node(Expr* d) : data(d), next(nullptr) {}
+            };
+            Node* top;
+        public:
+            ExprStack() : top(nullptr) {}
+            ~ExprStack() {
+                while (top) {
+                    Node* temp = top;
+                    top = top->next;
+                    delete temp->data;
+                    delete temp;
+                }
             }
-            while (opStack) {
-                OpStackNode* temp = opStack;
-                opStack = opStack->next;
+            void push(Expr* expr) {
+                Node* newNode = new Node(expr);
+                newNode->next = top;
+                top = newNode;
+            }
+            Expr* pop() {
+                if (!top) throw runtime_error("Expression stack underflow");
+                Node* temp = top;
+                top = top->next;
+                Expr* data = temp->data;
                 delete temp;
+                return data;
+            }
+            bool empty() const { return top == nullptr; }
+        };
+
+        class OpStack {
+            struct Node {
+                TokenType data;
+                Node* next;
+                Node(TokenType d) : data(d), next(nullptr) {}
+            };
+            Node* top;
+        public:
+            OpStack() : top(nullptr) {}
+            ~OpStack() {
+                while (top) {
+                    Node* temp = top;
+                    top = top->next;
+                    delete temp;
+                }
+            }
+            void push(TokenType op) {
+                Node* newNode = new Node(op);
+                newNode->next = top;
+                top = newNode;
+            }
+            TokenType pop() {
+                if (!top) throw runtime_error("Operator stack underflow");
+                Node* temp = top;
+                top = top->next;
+                TokenType data = temp->data;
+                delete temp;
+                return data;
+            }
+            bool empty() const { return top == nullptr; }
+            TokenType peek() const {
+                if (!top) throw runtime_error("Operator stack empty");
+                return top->data;
             }
         };
+
+        ExprStack exprStack;
+        OpStack opStack;
 
         //stack.push("parse_expr", nullptr);
         //while (!stack.empty()) {
@@ -737,37 +758,37 @@ private:
         };
 
         auto applyOp = [&]() {
-            if (!opStack) return;
-            TokenType op = popOp();
-            Expr* right = popExpr();
-            Expr* left = popExpr();
+            if (opStack.empty()) return;
+            TokenType op = opStack.pop();
+            Expr* right = exprStack.pop();
+            Expr* left = exprStack.pop();
             BinaryExpr* bin = new BinaryExpr();
             bin->op = op;
             bin->left = left;
             bin->right = right;
-            pushExpr(bin);
+            exprStack.push(bin);
         };
 
         Token* token = current;
         while (token && token->type != TokenType::SEMICOLON && token->type != TokenType::COMMA && token->type != TokenType::RPAREN) {
             if (token->type == TokenType::NUMBER) {
-                pushExpr(new NumberExpr(token->value));
+                exprStack.push(new NumberExpr(token->value));
                 token = token->next;
             } else if (token->type == TokenType::STRING_LITERAL) {
-                pushExpr(new StringExpr(token->value));
+                exprStack.push(new StringExpr(token->value));
                 token = token->next;
             } else if (token->type == TokenType::IDENTIFIER) {
                 if (!symbols.isDeclared(token->value)) throw runtime_error("Undefined variable: " + token->value);
-                pushExpr(new VarExpr(token->value));
+                exprStack.push(new VarExpr(token->value));
                 token = token->next;
             } else if (token->type == TokenType::LPAREN) {
-                pushOp(TokenType::LPAREN);
+                opStack.push(TokenType::LPAREN);
                 token = token->next;
             } else if (token->type == TokenType::RPAREN) {
-                while (opStack && opStack->op != TokenType::LPAREN) {
+                while (!opStack.empty() && opStack.peek() != TokenType::LPAREN) {
                     applyOp();
                 }
-                if (opStack) popOp(); // Remove LPAREN
+                if (!opStack.empty()) opStack.pop(); // Remove LPAREN
                 else throw runtime_error("Mismatched parentheses");
                 token = token->next;
             } else if (token->type == TokenType::PLUS || token->type == TokenType::MINUS ||
@@ -776,10 +797,10 @@ private:
                        token->type == TokenType::GT || token->type == TokenType::LE ||
                        token->type == TokenType::GE || token->type == TokenType::AND ||
                        token->type == TokenType::OR) {
-                while (opStack && opStack->op != TokenType::LPAREN && precedence(token->type) <= precedence(opStack->op)) {
+                while (!opStack.empty() && opStack.peek() != TokenType::LPAREN && precedence(token->type) <= precedence(opStack.peek())) {
                     applyOp();
                 }
-                pushOp(token->type);
+                opStack.push(token->type);
                 token = token->next;
             } else {
                 throw runtime_error("Invalid token in expression: " + token->value);
@@ -787,15 +808,14 @@ private:
         }
         current = token;
 
-        while (opStack) {
+        while (!opStack.empty()) {
             applyOp();
         }
 
-        if (!exprStack) throw runtime_error("Invalid expression");
-        Expr* result = popExpr();
-        if (exprStack) throw runtime_error("Invalid expression");
+        if (exprStack.empty()) throw runtime_error("Invalid expression");
+        Expr* result = exprStack.pop();
+        if (!exprStack.empty()) throw runtime_error("Invalid expression");
 
-        clearStacks();
         return result;
     }
 
