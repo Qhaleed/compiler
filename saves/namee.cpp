@@ -4,6 +4,6 @@ using namespace std;
 
 
 int main() {
-    cout << "sam" << endl;
+    cout << "res" << endl;
     return 0;
 }
